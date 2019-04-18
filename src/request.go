@@ -1,31 +1,17 @@
 package smeago
 
 import (
-	"html"
+	"golang.org/x/net/html"
 	"io"
-	"io/ioutil"
-	"regexp"
-)
-
-var (
-	anchorRE = regexp.MustCompile("<a.*href=\"([^\"]*)\"[^>]*>")
 )
 
 type Result struct {
 	Links []string
 }
 
-func ReadStringSize(rd io.Reader, n int) (*Result, error) {
+func ReadStringSize(rd io.Reader) (*Result, error) {
 	r := &Result{}
-	bs := make([]byte, n, n)
-
-	_, err := io.ReadAtLeast(rd, bs, n)
-	if err != nil {
-		return r, err
-	}
-
-	s := string(bs)
-	links := getLinks(s)
+	links := getLinks(rd)
 	lc := links[:0]
 	// Only internal links
 	for _, l := range links {
@@ -39,14 +25,7 @@ func ReadStringSize(rd io.Reader, n int) (*Result, error) {
 
 func ReadString(rd io.Reader) (*Result, error) {
 	r := &Result{}
-
-	bs, err := ioutil.ReadAll(rd)
-	if err != nil {
-		return r, err
-	}
-
-	s := string(bs)
-	links := getLinks(s)
+	links := getLinks(rd)
 	lc := links[:0]
 	// Only internal links
 	for _, l := range links {
@@ -62,11 +41,24 @@ func decodeURL(s string) string {
 	return html.UnescapeString(s)
 }
 
-func getLinks(s string) []string {
-	matches := anchorRE.FindAllStringSubmatch(s, -1)
-	links := make([]string, 0)
-	for _, a := range matches {
-		links = append(links, a[1])
+func getLinks(body io.Reader) []string {
+	var links []string
+	z := html.NewTokenizer(body)
+	for {
+		tt := z.Next()
+
+		switch tt {
+		case html.ErrorToken:
+			return links
+		case html.StartTagToken, html.EndTagToken:
+			token := z.Token()
+			if "a" == token.Data {
+				for _, attr := range token.Attr {
+					if attr.Key == "href" {
+						links = append(links, attr.Val)
+					}
+				}
+			}
+		}
 	}
-	return links
 }

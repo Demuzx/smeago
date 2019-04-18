@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/dbalduini/smeago/src"
+	"github.com/Demuzx/smeago/src"
 	"log"
 	"os"
 	"path"
@@ -15,6 +15,7 @@ var (
 	port      string
 	urlLoc    string
 	outputDir string
+	userAgent string
 )
 
 func main() {
@@ -39,7 +40,8 @@ func main() {
 	log.Println("Sitemap File:", s.Filename)
 
 	// Start crawling on the home page
-	c := smeago.NewCrawler(origin)
+	c := smeago.NewCrawler(origin, 30*time.Second, 3)
+	c.AddHeader("User-Agent", userAgent)
 	cs := smeago.NewCrawlerSupervisor(c)
 	cs.AddJobToBuffer("/")
 
@@ -63,9 +65,9 @@ func init() {
 		log.Println(err)
 		wordDir = ""
 	}
-
 	flag.StringVar(&host, "h", "http://localhost", "the host name")
 	flag.StringVar(&port, "p", "80", "the host port")
 	flag.StringVar(&urlLoc, "loc", "", "the prefix of sitemap loc tags")
 	flag.StringVar(&outputDir, "o", wordDir, "the sitemap output dir")
+	flag.StringVar(&userAgent, "a", "", "user agent")
 }
