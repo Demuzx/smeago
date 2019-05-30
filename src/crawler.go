@@ -1,6 +1,7 @@
 package smeago
 
 import (
+	"crypto/tls"
 	"log"
 	"net/http"
 	"time"
@@ -73,6 +74,16 @@ func (c *Crawler) Crawl(j Job) {
 		log.Printf("add custom header: %v: %v", k, v)
 		req.Header.Set(k, v)
 	}
+	trSkipVerify := &http.Transport{
+		MaxIdleConnsPerHost: 10,
+		TLSClientConfig: &tls.Config{
+			MaxVersion:         tls.VersionTLS11,
+			InsecureSkipVerify: true,
+		},
+	}
+
+	client.Transport = trSkipVerify
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
